@@ -14,7 +14,7 @@ class Pagecontainer extends Component {
 			number: 1,
             dataList:[],
             pageConfig: {
-                totalPage: data.length / 10
+                totalPage: Math.round(data.length / 100)
             }
         }
         this.getCurrentPage = this.getCurrentPage.bind(this)
@@ -24,14 +24,10 @@ class Pagecontainer extends Component {
 			// dataList:data[currentPage-1].證券代號,
 			number: currentPage
 		})
-		
     }
     render() {
-        //先建立一個空陣列
         let lists = [];
-        //用迴圈將代辦事項的內容一個個放進空陣列中
-        for(let i=10 * (this.state.number - 1);i<10 * (this.state.number);i++){
-			//記得在JSX中使用JS變數要用花括號包著
+        for(let i=100 * (this.state.number - 1);i<100 * (this.state.number);i++){
 			try{
 				var obj = data[i]
 				console.log(obj)

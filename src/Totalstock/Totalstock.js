@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import PlotlyChart from '../PlotlyChart/PlotlyChart';
+// import PlotlyChart from '../PlotlyChart/PlotlyChart';
 
 class Totalstock extends Component {
   constructor() {
@@ -20,11 +20,11 @@ class Totalstock extends Component {
     return (
       <div className="AdsAnalysis">
         <div className="AdsAnalysisContent">
-          <PlotlyChart
+          {/* <PlotlyChart
             title="大盤指數"
             url={`https://kevinshuang.github.io/stock_analysis/data.json`}
             height={600}
-          />
+          /> */}
         </div>
       </div>
     );

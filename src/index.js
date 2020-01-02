@@ -4,7 +4,8 @@ import './index.css';
 import * as serviceWorker from './serviceWorker';
 import Main from './containers/pagecontainer';
 import App from './App';
-import Totalstock from './Totalstock/Totalstock';
+import StockList from './StockList/StockList';
+
 
 const JsonTable = require('ts-react-json-table');
 // var items = [
@@ -21,7 +22,7 @@ let admins = require('./file.json');
 // ReactDOM.render(<Main />, document.getElementById('root'));
 
 // ReactDOM.render(<App />, document.getElementById('root'));
-ReactDOM.render(<Totalstock />, document.getElementById('root'));
+ReactDOM.render(<StockList />, document.getElementById('root'));
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.

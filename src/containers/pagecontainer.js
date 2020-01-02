@@ -1,9 +1,10 @@
 /**
- * Created By brand On 2018/2/2
+ * Created By Shuang On 2019/12/25
  */
 import React, {Component} from 'react'
 import Pagecomponent from '../components/pagecomponent'
 import data from '../file.json'
+import profile from '../profile.json'
 
 const JsonTable = require('ts-react-json-table');
 
@@ -21,7 +22,6 @@ class Pagecontainer extends Component {
     }
     getCurrentPage(currentPage) {
         this.setState({
-			// dataList:data[currentPage-1].證券代號,
 			number: currentPage
 		})
     }
@@ -30,7 +30,6 @@ class Pagecontainer extends Component {
         for(let i=100 * (this.state.number - 1);i<100 * (this.state.number);i++){
 			try{
 				var obj = data[i]
-				console.log(obj)
 				lists.push(obj)
 			}
 			catch(e){
@@ -40,6 +39,9 @@ class Pagecontainer extends Component {
         return (
             <div>
 				<JsonTable rows = {lists} />
+                <div>
+                    更新日期: {profile[0].time}
+                </div>
                 <Pagecomponent pageConfig={this.state.pageConfig}
                                pageCallbackFn={this.getCurrentPage}/>
             </div>

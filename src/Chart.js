@@ -1,10 +1,7 @@
-
 import React from "react";
 import PropTypes from "prop-types";
-
 import { format } from "d3-format";
 import { timeFormat } from "d3-time-format";
-
 import { ChartCanvas, Chart } from "react-stockcharts";
 import {
 	CandlestickSeries,
@@ -12,6 +9,7 @@ import {
 	BollingerSeries,
 	BarSeries,
 	AreaSeries,
+	MACDSeries
 } from "react-stockcharts/lib/series";
 import { XAxis, YAxis } from "react-stockcharts/lib/axes";
 import {
@@ -20,23 +18,48 @@ import {
 	MouseCoordinateX,
 	MouseCoordinateY,
 } from "react-stockcharts/lib/coordinates";
-
 import { discontinuousTimeScaleProvider } from "react-stockcharts/lib/scale";
-import { OHLCTooltip, MovingAverageTooltip, BollingerBandTooltip } from "react-stockcharts/lib/tooltip";
-import { ema, sma, bollingerBand } from "react-stockcharts/lib/indicator";
+import { OHLCTooltip, MovingAverageTooltip, BollingerBandTooltip, MACDTooltip } from "react-stockcharts/lib/tooltip";
+import { ema, sma, bollingerBand, macd } from "react-stockcharts/lib/indicator";
 import { fitWidth } from "react-stockcharts/lib/helper";
 import { last } from "react-stockcharts/lib/utils";
-
 const bbStroke = {
 	top: "#964B00",
 	middle: "#000000",
 	bottom: "#964B00",
 };
-
 const bbFill = "#4682B4";
-
+const macdAppearance = {
+	stroke: {
+		macd: "#FF0000",
+		signal: "#00F300",
+	},
+	fill: {
+		divergence: "#4682B4"
+	},
+};
+const mouseEdgeAppearance = {
+	textFill: "#542605",
+	stroke: "#05233B",
+	strokeOpacity: 1,
+	strokeWidth: 3,
+	arrowWidth: 5,
+	fill: "#BCDEFA",
+};
 class CandleStickChartWithBollingerBandOverlay extends React.Component {
 	render() {
+		const ema26 = ema()
+			.id(0)
+			.options({ windowSize: 26 })
+			.merge((d, c) => { d.ema26 = c; })
+			.accessor(d => d.ema26);
+
+		const ema12 = ema()
+			.id(1)
+			.options({ windowSize: 12 })
+			.merge((d, c) => {d.ema12 = c;})
+			.accessor(d => d.ema12);
+
 		const ema20 = ema()
 			.options({
 				windowSize: 20, // optional will default to 10
@@ -64,13 +87,23 @@ class CandleStickChartWithBollingerBandOverlay extends React.Component {
 			.stroke("#4682B4")
 			.fill("#4682B4");
 
+		const macdCalculator = macd()
+			.options({
+				fast: 12,
+				slow: 26,
+				signal: 9,
+			})
+			.merge((d, c) => {d.macd = c;})
+			.accessor(d => d.macd);
+
 		const bb = bollingerBand()
 			.merge((d, c) => {d.bb = c;})
 			.accessor(d => d.bb);
 
 		const { type, data: initialData, width, ratio } = this.props;
 
-		const calculatedData = ema20(sma20(ema50(smaVolume50(bb(initialData)))));
+		const bollingData = ema20(sma20(ema50(smaVolume50(bb(initialData)))));
+		const calculatedData = smaVolume50(macdCalculator(ema12(ema26(bollingData))));
 		const xScaleProvider = discontinuousTimeScaleProvider
 			.inputDateAccessor(d => d.date);
 		const {
@@ -80,12 +113,13 @@ class CandleStickChartWithBollingerBandOverlay extends React.Component {
 			displayXAccessor,
 		} = xScaleProvider(calculatedData);
 
+
 		const start = xAccessor(last(data));
 		const end = xAccessor(data[Math.max(0, data.length - 150)]);
 		const xExtents = [start, end];
-		console.log(data)
+
 		return (
-			<ChartCanvas height={400}
+			<ChartCanvas height={600}
 				width={width}
 				ratio={ratio}
 				margin={{ left: 70, right: 70, top: 10, bottom: 30 }}
@@ -97,7 +131,7 @@ class CandleStickChartWithBollingerBandOverlay extends React.Component {
 				displayXAccessor={displayXAccessor}
 				xExtents={xExtents}
 			>
-				<Chart id={1}
+				<Chart id={1} height = {300}
 					yExtents={[d => [d.high, d.low], sma20.accessor(), ema20.accessor(), ema50.accessor(), bb.accessor()]}
 					padding={{ top: 10, bottom: 20 }}
 					onContextMenu={(...rest) => { console.log("chart - context menu", rest); }}
@@ -160,9 +194,9 @@ class CandleStickChartWithBollingerBandOverlay extends React.Component {
 						yAccessor={d => d.bb}
 						options={bb.options()} />
 				</Chart>
-				<Chart id={2}
+				<Chart id={2} 
 					yExtents={[d => d.volume, smaVolume50.accessor()]}
-					height={150} origin={(w, h) => [0, h - 150]}
+					height={150} origin={(w, h) => [0, h - 300]}
 				>
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")}/>
 
@@ -175,6 +209,35 @@ class CandleStickChartWithBollingerBandOverlay extends React.Component {
 					<AreaSeries yAccessor={smaVolume50.accessor()} stroke={smaVolume50.stroke()} fill={smaVolume50.fill()}/>
 					<CurrentCoordinate yAccessor={smaVolume50.accessor()} fill={smaVolume50.stroke()} />
 					<CurrentCoordinate yAccessor={d => d.volume} fill="#9B0A47" />
+				</Chart>
+				<Chart id={3} height={150}
+					yExtents={macdCalculator.accessor()}
+					origin={(w, h) => [0, h - 150]} padding={{ top: 10, bottom: 10 }}
+				>
+					<XAxis axisAt="bottom" orient="bottom"/>
+					<YAxis axisAt="right" orient="right" ticks={2} />
+
+					<MouseCoordinateX
+						at="bottom"
+						orient="bottom"
+						displayFormat={timeFormat("%Y-%m-%d")}
+						rectRadius={5}
+						{...mouseEdgeAppearance}
+					/>
+					<MouseCoordinateY
+						at="right"
+						orient="right"
+						displayFormat={format(".2f")}
+						{...mouseEdgeAppearance}
+					/>
+					<MACDSeries yAccessor={d => d.macd}
+						{...macdAppearance} />
+					<MACDTooltip
+						origin={[-38, 15]}
+						yAccessor={d => d.macd}
+						options={macdCalculator.options()}
+						appearance={macdAppearance}
+					/>
 				</Chart>
 				<CrossHairCursor />
 			</ChartCanvas>

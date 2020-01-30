@@ -1,101 +1,37 @@
-import React, { Component } from 'react';
-import Chart from '../Chart/Chart';
-import ReactTable from "react-table";
-import "react-table/react-table.css";
-import Charted from '../Chart';
+import React, { Component } from "react";
 import { TypeChooser } from "react-stockcharts/lib/helper";
 import { getData } from "../utils"
+import Chart from '../Chart';
 
-class StockList2 extends Component {
-  constructor() {
-    super();
-    
-    this.state = {
-      StockData: null
-    }
-    
-    // this.onTimeRangeChange.bind(this);
-  }
-  
-	componentDidMount() {
-		getData().then(abcdata => {
-			this.setState({ 
-        StockData: abcdata })
-		})
-  }
-  
-	render() {
-
-		if (this.state.StockData == null) {
-      
-			return <div>Loading...</div>
-    }
-		
-		return (
-			<TypeChooser>
-				{type => <Charted type={type} data={this.state.StockData} />}
-			</TypeChooser>
-		)
-	}
-}
-
+// Import React Table
+import ReactTable from "react-table";
+import "react-table/react-table.css";
 class StockList extends Component {
   constructor() {
     super();
     this.state = {
-      timeRange: 365,
       code: 1101,
-      coutryFlag: {},
-      money: {
-        收盤價:true,
-        flurry: true,
-        開盤價: true,
-        marketPlace: true
-      },
-      data: null,
-      platform: '',
-      adType: '',
-      chartType: 'adsAnalysis',
-      StockData: [],
+      tablePageSize: 6,
+      Stockdata: [], 
+      data:null,
       chartData: [],
       selected: -1,
-      done: [],
-      predictValue: {
-        admob: {
-          fittedvalues: 0
-        },
-        fan: {
-          fittedvalues: 0
-        },
-        flurry: {
-          fittedvalues: 0
-        },
-        marketplace: {
-          fittedvalues: 0
-        }
-      }
-    }
-    this.onTimeRangeChange.bind(this);
+      done: []
+    };
   }
-
+  toggleLine(key) {
+    const { money } = this.state
+    money[key] = !money[key];
+    this.setState({
+      money: money
+    })
+  }
   componentDidMount() {
-    getData().then(data => {
+    getData({code: this.state.code}).then(data => {
 			this.setState({ data: data })
-		})
-    // this.fetchCountryFlag();
+    })
     this.fetchAlertData();
-    
   }
-  
-  onTimeRangeChange(timeRange) {
-    this.fetchChartData({
-      code: this.state.code,
-      // platform: this.state.platform,
-      // adType: this.state.adType,
-      timeRange: +timeRange
-    });
-  }
-
   fetchAlertData() {
     fetch(`https://kaishuang1004.github.io/stock_analysis/file.json`)
       .then(res => res.json())
@@ -106,345 +42,189 @@ class StockList extends Component {
           return;
         }
         this.setState({
-          StockData: data
+          Stockdata: data
         });
       });
   }
-
-  fetchChartData({ code, selected}) {
-    let url = `https://kaishuang1004.github.io/stock_analysis/file_${code}.json`;
-    if (this.props.old) {
-      url = `https://kaishuang1004.github.io/stock_analysis/file_${code}.json`
-    }
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === false && data.authStatus === false) {
-          window.googleToken = window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().id_token;
-          this.fetchChartData({ code, selected});
-          return;
-        }
-        this.setState({
-          code: code,
-          chartData: data,
-          selected: selected
-        });
-      });
-  }
-
-  toggleLine(key) {
-    const { money } = this.state
-    money[key] = !money[key];
-    this.setState({
-      money: money
-    })
-  }
-
   render() {
-    console.log(this.state.data)
+    const { Stockdata, data, tablePageSize, selected } = this.state;
     if (this.state.data == null) {
 			return <div>Loading...</div>
     }
-    const { StockData, chartData, timeRange, chartType, selected, predictValue, data } = this.state;
-    const chartHeight = 400;
-    const adjustPredictLine = (chartData) => {
-      const length = chartData.length;
-      if (length === 0) {
-        return [];
-      }
-      let data = [...chartData];
-      
-      // data.map((ele, index) => {
-      //   ele.network.admob.fittedvalues = index === data.length - 1 ? ele.network.admob.eCPM : undefined;
-      //   ele.network.fan.fittedvalues = index === data.length - 1 ? ele.network.fan.eCPM : undefined;
-      //   ele.network.flurry.fittedvalues = index === data.length - 1 ? ele.network.flurry.eCPM : undefined;
-      //   ele.network.marketplace.fittedvalues = index === data.length - 1 ? ele.network.marketplace.eCPM : undefined;
-      //   return ele;
-      // });
-      // const predictDate = new Date(data[length - 1].date);
-      // predictDate.setDate(predictDate.getDate() + 1);
-      // data.push({
-      //   date: `${predictDate.getFullYear()}/${predictDate.getMonth() + 1}/${predictDate.getDate()}`,
-      //   network: predictValue
-      // });
-      return data;
-    }
-    
-    
     return (
-      <div
-        className="AdsAnalysis"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: window.innerHeight * 0.9
-        }}
-      >
-      {(this.state.impression || this.state.revenue) && (<div className="AdsAnalysisContent">eCPM: </div>)}
-        {!this.props.hideSelection &&
-          (
-            <div className="AdsAnalysisContent">
-            <select value={timeRange ? timeRange : this.state.timeRange} onChange={e => { this.onTimeRangeChange(e.target.value) }}>
-              <option value={3} >3 Days</option>
-              <option value={7} >7 Days</option>
-              <option value={14} >14 Days</option>
-              <option value={30} >30 Days</option>
-              <option value={60} >60 Days</option>
-              <option value={90} >90 Days</option>
-              <option value={9999} >All</option>
-            </select>
-            </div>
-          )
-        }
-        {<div className="AdsAnalysisContent">
-        
-          <Chart data={adjustPredictLine(chartData)}
-            收盤價={this.state.money.收盤價}
-            flurry={this.state.money.flurry}
-            開盤價={this.state.money.開盤價}
-            marketPlace={this.state.money.marketPlace}
-            revenue={this.props.revenue || this.state.revenue}
-            type={chartType}
-            timeRange={timeRange}
-            predictLine={true}
-            width={this.props.width}
-            height={this.props.height || chartHeight}
-            toggleLine={key => { this.toggleLine(key); }}
-          />
-        </div>}
-        
+      <div>
         <TypeChooser>
-           {type => <Charted type={type} data={this.state.data} />}
-        </TypeChooser>
-        
-        {
-          !this.props.hideTable && (
-            <div className="AdsAnalysisContent">
-              <ReactTable
-                style={{
-                  width: '90%',
-                  height: '300px'
-                }}
-                showPagination={false}
-                showPageSizeOptions={false}
-                data={[...StockData]}
-                columns={[
-                  {
-                    Header: '證券代號',
-                    columns: [{
-                      Header: '證券代號',
-                      id: 'exchange_alert',
-                      accessor: '證券代號',
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 20,
-                      filterMethod: (filter, row) => {
-                        if (filter.value) {
-                          return true;
-                        }
-                        return row[filter.id];
-                      },
-                      Filter: ({ filter, onChange }) => {
-                        if (!filter) {
-                          return <i className="material-icons" onClick={event => onChange(false)} style={{ cursor: 'pointer', fontSize: '20px' }} >star_border</i>;
-                        } else {
-                          return filter.value ? <i className="material-icons" onClick={event => onChange(false)} style={{ cursor: 'pointer', fontSize: '20px' }} >star_border</i> : <i className="material-icons" style={{ color: '#ffce31', cursor: 'pointer', fontSize: '20px' }} onClick={event => onChange(true)} >star</i>
-                        }
-                      }
-                    }],
-                  },
-                  {
-                    Header: '證券名稱',
-                    columns: [{
-                      id: '證券名稱',
-                      Header: '證券名稱',
-                      accessor: '證券名稱',
-                      Cell: props => <span>{props.value}</span>,
-                      filterMethod: (filter, row) => {
-                        return row[filter.id].country.toLowerCase().indexOf(filter.value.toLowerCase()) !== -1;
-                      },
-                      minWidth: 30
-                    }]
-                  },
-                  {
-                    Header: '漲跌',
-                    columns: [{
-                      id: '漲跌(+/-)',
-                      Header: props => <span style={{ color: '#bf3d31' }}>漲跌(+/-)</span>,
-                      accessor: '漲跌(+/-)',
-                      Cell: props => <span>{props.value}</span>,
-                      filterMethod: (filter, row) => {
-                        if (filter.value === "all") {
-                          return true;
-                        }
-                        return row[filter.id] === filter.value;
-                      },
-                      Filter: ({ filter, onChange }) =>
-                        <select
-                          onChange={event => onChange(event.target.value)}
-                          style={{ width: "100%" }}
-                          value={filter ? filter.value : "all"}
-                        >
-                          <option value="all">顯示全部</option>
-                          <option value="+">+</option>
-                          <option value="-">-</option>
-                        </select>,
-                      minWidth: 30
-                    }, {
-                      id: '漲跌價差',
-                      Header: props => <span style={{ color: '#3b5998' }}>漲跌價差</span>,
-                      accessor: '漲跌價差',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    }]
-                  },
-                  {
-                    Header: '成交',
-                    columns: [{
-                      id: '成交股數',
-                      Header: props => <span style={{ color: '#bf3d31' }}>成交股數</span>,
-                      accessor: '成交股數',
-                      Cell: props => <span>{props.value}</span>,
-                      filterMethod: (filter, row) => {
-                        if (filter.value === "all") {
-                          return true;
-                        }
-                        return row[filter.id] === filter.value;
-                      },
-                      Filter: ({ filter, onChange }) =>
-                        <select
-                          onChange={event => onChange(event.target.value)}
-                          style={{ width: "100%" }}
-                          value={filter ? filter.value : "all"}
-                        >
-                          <option value="all">顯示全部</option>
-                          <option value="+">+</option>
-                          <option value="-">-</option>
-                        </select>,
-                      minWidth: 30
-                    }, {
-                      id: '成交金額',
-                      Header: props => <span style={{ color: '#3b5998' }}>成交金額</span>,
-                      accessor: '成交金額',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    }]
-                  },
-                  {
-                    Header: '金額',
-                    columns: [{
-                      id: '開盤價',
-                      Header: props => <span style={{ color: '#bf3d31' }}>開盤價</span>,
-                      accessor: '開盤價',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    }, {
-                      id: '收盤價',
-                      Header: props => <span style={{ color: '#3b5998' }}>收盤價</span>,
-                      accessor: '收盤價',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    }, 
-                    {
-                      id: 'flurry',
-                      Header: props => <span style={{ color: '#82ca9d' }}>最高價</span>,
-                      accessor: '最高價',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    },
-                    {
-                      id: 'low',
-                      Header: props => <span style={{ color: '#82ca9d' }}>最低價</span>,
-                      accessor: '最低價',
-                      filterable: false,
-                      Cell: props => <span>{props.value}</span>,
-                      minWidth: 30
-                    }]
-                  },
-                  {
-                    Header: '本益比',
-                    columns: [{
-                      id: '本益比',
-                      Header: '本益比',
-                      accessor: '本益比',
-                      Cell: props => <span>{props.value}</span>,
-                      filterMethod: (filter, row) => {
-                        return row[filter.id].country.toLowerCase().indexOf(filter.value.toLowerCase()) !== -1;
-                      },
-                      minWidth: 30
-                    }]
-                  },
-                  // {
-                  //   Header: '成交股數',
-                  //   columns: [{
-                  //     Header: 'Unit',
-                  //     accessor: 'unit',
-                  //     Cell: props => <span> 
-                  //     {props.value.toUpperCase()}
-                  //     </span>,
-                  //     filterMethod: (filter, row) => {
-                  //       if (filter.value === "all") {
-                  //         return true;
-                  //       }
-                  //       return row[filter.id] === filter.value;
-                  //     },
-                  //     Filter: ({ filter, onChange }) =>
-                  //       <select
-                  //         onChange={event => onChange(event.target.value)}
-                  //         style={{ width: "100%" }}
-                  //         value={filter ? filter.value : "all"}
-                  //       >
-                  //         <option value="all">Show All</option>
-                  //         <option value="banner">Banner</option>
-                  //         <option value="banner_native">Banner Native</option>
-                  //         <option value="eventbook_bottom">Eventbook Bottom</option>
-                  //         <option value="eventbook">Eventbook</option>
-                  //         <option value="list">List</option>
-                  //         <option value="rect2">Rect2</option>
-                  //         <option value="rect">Rect</option>
-                  //       </select>,
-                  //     minWidth: 50
-                  //   }],
-                  // },
-                ]}
-                className="-striped -highlight"
-                pageSize={[...StockData].length}
-                defaultPageSize={30}
-                sortable={false}
-                filterable={true}
-                getTdProps={(state, rowInfo, column, instance) => {
-                  return {
-                    onClick: (e, handleOriginal) => {
-                      if (column.Header === '' || selected === rowInfo.index) {
-                        return;
-                      }
-                      this.fetchChartData({
-                        code: rowInfo.original.證券代號,
-                        // platform: rowInfo.original.platform,
-                        // adType: rowInfo.original.unit,
-                        // timeRange: timeRange,
-                        selected: rowInfo.index,
-                      });
-                    }
+           {type => <Chart type={type} data={data} />}
+        </TypeChooser>  
+        <ReactTable
+          data={Stockdata}
+          columns={[
+            {
+              Header: '證券代號',
+              columns: [{
+                Header: '證券代號',
+                id: '證券代號',
+                accessor: '證券代號',
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 20,
+                filterMethod: (filter, row) => {
+                  console.log(row, filter)
+                  return row.證券代號.toLowerCase().indexOf(filter.value.toLowerCase()) !== -1;
+                },
+              }],
+            },
+            {
+              Header: '證券名稱',
+              columns: [{
+                id: '證券名稱',
+                Header: '證券名稱',
+                accessor: '證券名稱',
+                Cell: props => <span>{props.value}</span>,
+                filterMethod: (filter, row) => {
+                  console.log(row, filter)
+                  return row.證券名稱.toLowerCase().indexOf(filter.value.toLowerCase()) !== -1;
+                },
+                minWidth: 30
+              }]
+            },
+            {
+              Header: '漲跌',
+              columns: [{
+                id: '漲跌(+/-)',
+                Header: props => <span style={{ color: '#bf3d31' }}>漲跌(+/-)</span>,
+                accessor: '漲跌(+/-)',
+                Cell: props => <span>{props.value}</span>,
+                filterMethod: (filter, row) => {
+                  if (filter.value === "all") {
+                    return true;
                   }
-                }}
-                getTrProps={(state, rowInfo, column) => {
-                  return {
-                    style: {
-                      textDecoration: rowInfo && this.state.done.indexOf(rowInfo.index) !== -1 ? 'line-through' : 'none',
-                      color: rowInfo && rowInfo.index === selected ? '#4285f4' : '#000',
-                    }
+                  return row[filter.id] === filter.value;
+                },
+                Filter: ({ filter, onChange }) =>
+                  <select
+                    onChange={event => onChange(event.target.value)}
+                    style={{ width: "100%" }}
+                    value={filter ? filter.value : "all"}
+                  >
+                    <option value="all">顯示全部</option>
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                  </select>,
+                minWidth: 30
+              }, {
+                id: '漲跌價差',
+                Header: props => <span style={{ color: '#3b5998' }}>漲跌價差</span>,
+                accessor: '漲跌價差',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              }]
+            },
+            {
+              Header: '成交',
+              columns: [{
+                id: '成交股數',
+                Header: props => <span style={{ color: '#bf3d31' }}>成交股數</span>,
+                accessor: '成交股數',
+                Cell: props => <span>{props.value}</span>,
+                filterMethod: (filter, row) => {
+                  if (filter.value === "all") {
+                    return true;
                   }
-                }}
-              />
-            </div>
-          )
-        }
-        
+                  return row[filter.id] === filter.value;
+                },
+                Filter: ({ filter, onChange }) =>
+                  <select
+                    onChange={event => onChange(event.target.value)}
+                    style={{ width: "100%" }}
+                    value={filter ? filter.value : "all"}
+                  >
+                    <option value="all">顯示全部</option>
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                  </select>,
+                minWidth: 30
+              }, {
+                id: '成交金額',
+                Header: props => <span style={{ color: '#3b5998' }}>成交金額</span>,
+                accessor: '成交金額',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              }]
+            },
+            {
+              Header: '金額',
+              columns: [{
+                id: '開盤價',
+                Header: props => <span style={{ color: '#bf3d31' }}>開盤價</span>,
+                accessor: '開盤價',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              }, {
+                id: '收盤價',
+                Header: props => <span style={{ color: '#3b5998' }}>收盤價</span>,
+                accessor: '收盤價',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              }, 
+              {
+                id: 'flurry',
+                Header: props => <span style={{ color: '#82ca9d' }}>最高價</span>,
+                accessor: '最高價',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              },
+              {
+                id: 'low',
+                Header: props => <span style={{ color: '#82ca9d' }}>最低價</span>,
+                accessor: '最低價',
+                filterable: false,
+                Cell: props => <span>{props.value}</span>,
+                minWidth: 30
+              }]
+            },
+            {
+              Header: '本益比',
+              columns: [{
+                id: '本益比',
+                Header: '本益比',
+                accessor: '本益比',
+                Cell: props => <span>{props.value}</span>,
+                filterMethod: (filter, row) => {
+                  return row[filter.id].country.toLowerCase().indexOf(filter.value.toLowerCase()) !== -1;
+                },
+                minWidth: 30
+              }]
+            },
+          ]}
+          pageSize={tablePageSize}
+          showPageSizeOptions={false}
+          filterable={true}
+          getTdProps={(state, rowInfo, column, instance) => {
+            return {
+              onClick: (e, handleOriginal) => {
+                if (column.Header === '' || selected === rowInfo.index) {
+                  return;
+                }
+                getData({code: rowInfo.original.證券代號}).then(data => {
+                  this.setState({ data: data })
+                })
+              }
+            }
+          }}
+          getTrProps={(state, rowInfo, column) => {
+            return {
+              style: {
+                textDecoration: rowInfo && this.state.done.indexOf(rowInfo.index) !== -1 ? 'line-through' : 'none',
+                color: rowInfo && rowInfo.index === selected ? '#4285f4' : '#000',
+              }
+            }
+          }}
+        />
       </div>
     );
   }
